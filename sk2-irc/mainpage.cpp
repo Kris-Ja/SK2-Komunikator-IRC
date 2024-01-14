@@ -1,7 +1,13 @@
 #include <iostream>
 #include <fstream>
+#include <winsock2.h>
+#include <windows.h>
+#include <ws2tcpip.h>
+#include <stdio.h>
 #include "mainpage.h"
 #include "ui_mainpage.h"
+
+#pragma comment(lib, "ws2_32.lib")
 
 std::string username;
 
@@ -28,6 +34,16 @@ void mainpage::getUser()
 
 void mainpage::on_sendButton_clicked()
 {
+    ui->textBrowser->append(QString::fromStdString(username));
+    QString newMessage = ui->textEdit->toPlainText();
+    ui->textEdit->clear();
+    ui->textBrowser->append(newMessage);
+}
+
+
+void mainpage::on_testButton_clicked()
+{
+    Sleep(5000);
     ui->textBrowser->append(QString::fromStdString(username));
     QString newMessage = ui->textEdit->toPlainText();
     ui->textEdit->clear();

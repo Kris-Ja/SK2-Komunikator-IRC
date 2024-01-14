@@ -44,6 +44,9 @@ else()
 endif()
 
 target_link_libraries(sk2-irc PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+if(WIN32)
+    target_link_libraries(sk2-irc PRIVATE ws2_32)
+endif()
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

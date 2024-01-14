@@ -20,6 +20,8 @@ public:
 private slots:
     void on_sendButton_clicked();
 
+    void on_testButton_clicked();
+
 private:
     Ui::mainpage *ui;
     void getUser();
