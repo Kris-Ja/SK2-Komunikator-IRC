@@ -4,6 +4,8 @@
 #include <windows.h>
 #include <ws2tcpip.h>
 #include <stdio.h>
+#include <cstdlib>
+#include <cstring>
 #include "mainpage.h"
 #include "ui_mainpage.h"
 
@@ -11,12 +13,13 @@
 
 std::string username;
 
-mainpage::mainpage(QWidget *parent)
+mainpage::mainpage(SOCKET newfd, QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::mainpage)
 {
     ui->setupUi(this);
     ui->currentChannelLabel->setText("Main channel");
+    fd = newfd;
     getUser();
 }
 
@@ -35,19 +38,28 @@ void mainpage::getUser()
 
 void mainpage::on_sendButton_clicked()
 {
-    ui->textBrowser->append(QString::fromStdString(username));
+    //read new message from user
     QString newMessage = ui->textEdit->toPlainText();
+    //format for sending
+    newMessage = "S0 " + newMessage;
+    //convert to const char*
+    QByteArray ba = newMessage.toUtf8();
+    const char *toSend = ba.data();
+    //send
+    std::cout<<strlen(toSend)<<std::endl;
+    send(fd,toSend,strlen(toSend)+1, 0);
+
     ui->textEdit->clear();
-    ui->textBrowser->append(newMessage);
 }
 
-
-void mainpage::on_testButton_clicked()
+void mainpage::on_channelButton_clicked()
 {
-    Sleep(5000);
-    ui->textBrowser->append(QString::fromStdString(username));
-    QString newMessage = ui->textEdit->toPlainText();
-    ui->textEdit->clear();
+
+}
+
+void mainpage::onMessageReceived(QString username, QString message)
+{
+    QString newMessage = username + ": " + message;
     ui->textBrowser->append(newMessage);
 }
 
