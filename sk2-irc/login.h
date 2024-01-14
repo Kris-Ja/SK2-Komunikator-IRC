@@ -23,6 +23,7 @@ private:
     Ui::login *ui;
     void openMainWindow(QString);
     void saveUsername(QString);
+    void establishConnection(QString,QString);
 };
 
 #endif // LOGIN_H
