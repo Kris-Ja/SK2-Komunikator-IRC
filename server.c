@@ -9,6 +9,8 @@
 #include<pthread.h>
 #define MAX_THREADS 5
 #define MAX_CHATS 2
+#define MAX_CMD_SIZE 300
+#define MAX_USERNAME_SIZE 30
 
 struct client_struct{
 	int cfd;
@@ -23,21 +25,38 @@ static pthread_mutex_t n_threads_mutex = PTHREAD_MUTEX_INITIALIZER,
 					   create_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int _write(int fd, char *buf, int len){
+	int l = len;
 	while (len > 0) {
 		int i = write(fd, buf, len);
+		if(i == 0) return 0;
 		len -= i;
 		buf += i;
 	}
+	return l;
 }
 
 int _read(int fd, char *buf, int bufsize){
-	int l=0;
+	static __thread int last_size = 0;
+	static __thread char last_buf[MAX_CMD_SIZE];
+	memcpy(buf, last_buf, last_size);
+	int l = last_size;
+	bufsize -= last_size;
+	for(int i=0; i<l; i++) if(buf[i]=='\0'){
+		memcpy(last_buf, buf+i+1, l-i-1);
+		last_size = l-i-1;
+		return i+1;
+	}
 	do {
 		int i = read(fd, buf+l, bufsize);
+		if(i == 0) return 0;
 		bufsize -= i;
 		l += i;
-	} while (buf[l-1]!='\0' && bufsize>0);
-	printf("l = %d\n", l);
+		for(int j=l-i; j<l; j++) if(buf[j]=='\0'){
+			memcpy(last_buf, buf+j+1, l-j-1);
+			last_size = l-j-1;
+			return j+1;
+		}
+	} while (bufsize>0);
 	return l;
 }
 
@@ -88,8 +107,20 @@ int create(int fd, char* cname, int cname_length){
 	return i;
 }
 
+void cthread_close(struct client_struct* client_info, char* name, int name_length){
+	if(name_length>0)
+		for(int i=0; i < MAX_CHATS; i++)
+			if(FD_ISSET(client_info->cfd, &chat_fd_set[i])) leave(i, client_info->cfd, name, name_length);
+	close(client_info->cfd);
+	free(client_info);
+	
+	pthread_mutex_lock(&n_threads_mutex);
+	n_threads--;
+	pthread_mutex_unlock(&n_threads_mutex);
+}
+
 void* cthread(void* arg){
-	char buf[300], name[30];
+	char buf[MAX_CMD_SIZE], name[MAX_USERNAME_SIZE];
 	int name_length;
 	struct client_struct* client_info = (struct client_struct*)arg;
 	int cfd = client_info->cfd;
@@ -97,9 +128,19 @@ void* cthread(void* arg){
 
 	printf("new connection from %s:%d\n", inet_ntoa((struct in_addr)caddr.sin_addr), ntohs(caddr.sin_port));
 	name_length = _read(cfd, name, sizeof(name));
+	if(name_length == 0){
+		//LOG
+		cthread_close(client_info, name, name_length);
+		return 0;
+	}
 	join(0, cfd, name, name_length);
 	while(1){
 		int n = _read(cfd, buf, sizeof(buf));
+		if(n == 0){
+			//LOG
+			cthread_close(client_info, name, name_length);
+			return 0;
+		}
 		int chat_id;
 		switch(buf[0]){
 			case 'L':
@@ -126,15 +167,7 @@ void* cthread(void* arg){
 				break;
 		}
 	}
-	// for(int i; i < MAX_CHATS; i++)
-	//	 if(FD_ISSET)leave();
-	close(cfd);
-	free(client_info);
-	
-	pthread_mutex_lock(&n_threads_mutex);
-	n_threads--;
-	pthread_mutex_unlock(&n_threads_mutex);
-	
+	cthread_close(client_info, name, name_length);
 	return 0;
 }
 
@@ -143,7 +176,6 @@ int main(int argc, char **argv){
 	int sfd, on=1;
 	struct sockaddr_in saddr, caddr;
 
-	for(int i=0; i<=MAX_THREADS; i++)FD_ZERO(&chat_fd_set[i]);
 	chat_name[0] = "global";
 	saddr.sin_family = AF_INET;
 	saddr.sin_addr.s_addr = INADDR_ANY;
