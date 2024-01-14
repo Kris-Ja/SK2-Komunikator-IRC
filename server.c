@@ -9,6 +9,8 @@
 #include<pthread.h>
 #define MAX_THREADS 5
 #define MAX_CHATS 2
+#define MAX_CMD_SIZE 300
+#define MAX_USERNAME_SIZE 30
 
 struct client_struct{
 	int cfd;
@@ -35,7 +37,7 @@ int _write(int fd, char *buf, int len){
 
 int _read(int fd, char *buf, int bufsize){
 	static __thread int last_size = 0;
-	static __thread char last_buf[50];
+	static __thread char last_buf[MAX_CMD_SIZE];
 	memcpy(buf, last_buf, last_size);
 	int l = last_size;
 	bufsize -= last_size;
@@ -105,9 +107,10 @@ int create(int fd, char* cname, int cname_length){
 	return i;
 }
 
-void cthread_close(struct client_struct* client_info){
-	// for(int i; i < MAX_CHATS; i++)
-	//	 if(FD_ISSET)leave();
+void cthread_close(struct client_struct* client_info, char* name, int name_length){
+	if(name_length>0)
+		for(int i=0; i < MAX_CHATS; i++)
+			if(FD_ISSET(client_info->cfd, &chat_fd_set[i])) leave(i, client_info->cfd, name, name_length);
 	close(client_info->cfd);
 	free(client_info);
 	
@@ -117,7 +120,7 @@ void cthread_close(struct client_struct* client_info){
 }
 
 void* cthread(void* arg){
-	char buf[300], name[30];
+	char buf[MAX_CMD_SIZE], name[MAX_USERNAME_SIZE];
 	int name_length;
 	struct client_struct* client_info = (struct client_struct*)arg;
 	int cfd = client_info->cfd;
@@ -127,7 +130,7 @@ void* cthread(void* arg){
 	name_length = _read(cfd, name, sizeof(name));
 	if(name_length == 0){
 		//LOG
-		cthread_close(client_info);
+		cthread_close(client_info, name, name_length);
 		return 0;
 	}
 	join(0, cfd, name, name_length);
@@ -135,7 +138,7 @@ void* cthread(void* arg){
 		int n = _read(cfd, buf, sizeof(buf));
 		if(n == 0){
 			//LOG
-			cthread_close(client_info);
+			cthread_close(client_info, name, name_length);
 			return 0;
 		}
 		int chat_id;
@@ -164,7 +167,7 @@ void* cthread(void* arg){
 				break;
 		}
 	}
-	cthread_close(client_info);
+	cthread_close(client_info, name, name_length);
 	return 0;
 }
 
