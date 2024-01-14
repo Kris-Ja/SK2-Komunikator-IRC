@@ -7,6 +7,7 @@
 #include "login.h"
 #include "ui_login.h"
 #include "mainpage.h"
+#include "reader.h"
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -39,7 +40,12 @@ void login::on_confirmButton_clicked()
 
     send(fd,username.toStdString().c_str(),sizeof(username.toStdString().c_str()), 0);
 
-    openMainWindow(username);
+    Reader* reader = new Reader(fd);
+    mainpage* mainPage = new mainpage(fd);
+    connect(reader,Reader::newMessage,mainPage,mainpage::onMessageReceived);
+    reader->start();
+
+    openMainWindow(mainPage,username);
 }
 
 void login::saveUsername(QString username)
@@ -64,13 +70,13 @@ void login::establishConnection(QString address, QString port)
     memcpy(&sa.sin_addr.s_addr, he->h_addr, he->h_length);
     sa.sin_port = htons(port.toInt());
     ::connect(fd, (sockaddr*)&sa,sizeof(sa));
+    std::cout<<"connected"<<std::endl;
 }
 
-void login::openMainWindow(QString username)
+void login::openMainWindow(mainpage* mainPage, QString username)
 {
     this->hide();
-    mainpage* huh = new mainpage;
-    huh->setAttribute(Qt::WA_DeleteOnClose);
-    huh->show();
+    mainPage->setAttribute(Qt::WA_DeleteOnClose);
+    mainPage->show();
 }
 
