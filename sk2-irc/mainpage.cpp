@@ -16,6 +16,7 @@ mainpage::mainpage(QWidget *parent)
     , ui(new Ui::mainpage)
 {
     ui->setupUi(this);
+    ui->currentChannelLabel->setText("Main channel");
     getUser();
 }
 
