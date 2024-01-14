@@ -34,13 +34,27 @@ int _write(int fd, char *buf, int len){
 }
 
 int _read(int fd, char *buf, int bufsize){
-	int l=0;
+	static __thread int last_size = 0;
+	static __thread char last_buf[50];
+	memcpy(buf, last_buf, last_size);
+	int l = last_size;
+	bufsize -= last_size;
+	for(int i=0; i<l; i++) if(buf[i]=='\0'){
+		memcpy(last_buf, buf+i+1, l-i-1);
+		last_size = l-i-1;
+		return i+1;
+	}
 	do {
 		int i = read(fd, buf+l, bufsize);
 		if(i == 0) return 0;
 		bufsize -= i;
 		l += i;
-	} while (buf[l-1]!='\0' && bufsize>0);
+		for(int j=l-i; j<l; j++) if(buf[j]=='\0'){
+			memcpy(last_buf, buf+j+1, l-j-1);
+			last_size = l-j-1;
+			return j+1;
+		}
+	} while (bufsize>0);
 	return l;
 }
 
