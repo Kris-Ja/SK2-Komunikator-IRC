@@ -81,7 +81,7 @@ void send_user_join(int chat_id, char* name, int name_length){
 void send_user_leave(int chat_id, char* name, int name_length){
 }
 void send_message(int chat_id, char* name, int name_length, char* buf, int bufsize){
-	for(int i=0; i<=MAX_THREADS; i++){
+	for(int i=0; i<=MAX_THREADS+3; i++){
 		if(FD_ISSET(i, &chat_fd_set[chat_id])){
 			char chat_id_text[5];
 			int l = int_to_text(chat_id, chat_id_text);
