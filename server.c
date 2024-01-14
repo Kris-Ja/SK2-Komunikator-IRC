@@ -11,6 +11,7 @@
 #define MAX_CHATS 2
 #define MAX_CMD_SIZE 300
 #define MAX_USERNAME_SIZE 30
+#define MAX_CHATNAME_SIZE 200
 
 struct client_struct{
 	int cfd;
@@ -18,7 +19,7 @@ struct client_struct{
 };
 
 static volatile int n_threads = 0, chat_exists[MAX_CHATS+1];
-static volatile char* chat_name[MAX_CHATS+1];
+static volatile char chat_name[MAX_CHATS+1][MAX_CHATNAME_SIZE];
 static volatile int chat_name_length[MAX_CHATS+1];
 static volatile fd_set chat_fd_set[MAX_THREADS+1];
 static pthread_mutex_t n_threads_mutex = PTHREAD_MUTEX_INITIALIZER,
@@ -60,6 +61,21 @@ int _read(int fd, char *buf, int bufsize){
 	return l;
 }
 
+int int_to_text(int n, char*text){
+	if(n == 0){
+		text[0]='0';
+		return 1;
+	}
+	int l = 10000;
+	int i = 0;
+	while(n/l == 0) l/=10;
+	while(l>0){
+		text[i++] = n/l + '0';
+		l/=10;
+	}
+	return i;
+}
+
 void send_user_join(int chat_id, char* name, int name_length){
 }
 void send_user_leave(int chat_id, char* name, int name_length){
@@ -67,18 +83,27 @@ void send_user_leave(int chat_id, char* name, int name_length){
 void send_message(int chat_id, char* name, int name_length, char* buf, int bufsize){
 	for(int i=0; i<=MAX_THREADS; i++){
 		if(FD_ISSET(i, &chat_fd_set[chat_id])){
-			//_write(i, chat_id, 1); // Todo: change chat_id to string
-			_write(i, ": ", 2);
-			_write(i, name, name_length);
-			_write(i, " wrote ", 7);
-			_write(i, buf, bufsize);
+			char chat_id_text[5];
+			int l = int_to_text(chat_id, chat_id_text);
+			_write(i, "S", 1);
+			_write(i, chat_id_text, l);
+			_write(i, " ", 1);
+			_write(i, name, name_length-1);
 			_write(i, "\n", 1);
+			_write(i, buf, bufsize);
 		}
 	}
 }
 void list(int fd){
 	for(int i=0; i<MAX_CHATS; i++){
-		if(chat_exists[i]);// send chat name and id to client
+		if(chat_exists[i]){
+			char buf[5];
+			int l = int_to_text(i, buf);
+			_write(fd, "L", 1);
+			_write(fd, buf, l);
+			_write(fd, " ", 1);
+			_write(fd, chat_name[i], chat_name_length[i]);
+		}
 	}
 }
 
@@ -97,7 +122,7 @@ int create(int fd, char* cname, int cname_length){
 	pthread_mutex_lock(&create_mutex); 
 	for(i=0; i<MAX_CHATS; i++){
 		if(!chat_exists[i]){
-			chat_name[i] = cname;
+			memcpy(chat_name[i], cname, cname_length);
 			chat_name_length[i] = cname_length;
 			chat_exists[i] = 1;
 			break;
@@ -176,7 +201,12 @@ int main(int argc, char **argv){
 	int sfd, on=1;
 	struct sockaddr_in saddr, caddr;
 
-	chat_name[0] = "global";
+	chat_name[0][0]='m';
+	chat_name[0][1]='a';
+	chat_name[0][2]='i';
+	chat_name[0][3]='n';
+	chat_name[0][4]='\0';
+	chat_name_length[0] = 5;
 	saddr.sin_family = AF_INET;
 	saddr.sin_addr.s_addr = INADDR_ANY;
 	saddr.sin_port = htons(1234);
