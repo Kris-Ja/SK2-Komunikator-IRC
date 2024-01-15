@@ -118,7 +118,21 @@ void send_chat_new(int exclude_fd, int chat_id, char* chat_name, int chat_name_l
 			pthread_mutex_unlock(&cfd_write_mutex[i]);
 		}
 	}
+}
 
+void send_chat_destroy(int chat_id){
+	char chat_id_text[5];
+	int l = int_to_text(chat_id, chat_id_text);
+
+	for(int i=0; i<=MAX_THREADS+10; i++){
+		if(fd_isset(i, 0)){
+			pthread_mutex_lock(&cfd_write_mutex[i]);
+			_write(i, "D", 1);
+			_write(i, chat_id_text, l);
+			_write(i, "\0", 1);
+			pthread_mutex_unlock(&cfd_write_mutex[i]);
+		}
+	}
 }
 
 void send_user_join(int chat_id, char* name, int name_length){
@@ -198,11 +212,10 @@ void join(int chat_id, int fd, char* name, int name_length){
 
 void destroy(int chat_id){
 	pthread_mutex_lock(&chat_fd_set_mutex[chat_id]);
-	
 	chat_creator[chat_id] = 0;
 	FD_ZERO(&chat_fd_set[chat_id]);
-	
 	pthread_mutex_unlock(&chat_fd_set_mutex[chat_id]);
+	send_chat_destroy(chat_id);	
 }
 
 void leave(int chat_id, int fd, char* name, int name_length){
