@@ -21,9 +21,11 @@ struct client_struct{
 static volatile int n_threads = 0, chat_exists[MAX_CHATS+1];
 static volatile char chat_name[MAX_CHATS+1][MAX_CHATNAME_SIZE];
 static volatile int chat_name_length[MAX_CHATS+1];
-static volatile fd_set chat_fd_set[MAX_THREADS+1];
+static volatile fd_set chat_fd_set[MAX_CHATS+1];
 static pthread_mutex_t n_threads_mutex = PTHREAD_MUTEX_INITIALIZER,
-					   create_mutex = PTHREAD_MUTEX_INITIALIZER;
+					   create_chat_mutex = PTHREAD_MUTEX_INITIALIZER,
+					   cfd_write_mutex[MAX_THREADS+10],
+					   chat_mutex[MAX_CHATS+1];
 
 int _write(int fd, char *buf, int len){
 	int l = len;
@@ -81,30 +83,38 @@ void send_user_join(int chat_id, char* name, int name_length){
 void send_user_leave(int chat_id, char* name, int name_length){
 }
 void send_message(int chat_id, char* name, int name_length, char* buf, int bufsize){
-	for(int i=0; i<=MAX_THREADS+3; i++){
+	for(int i=0; i<=MAX_THREADS+10; i++){
 		if(FD_ISSET(i, &chat_fd_set[chat_id])){
 			char chat_id_text[5];
 			int l = int_to_text(chat_id, chat_id_text);
+			
+			pthread_mutex_lock(&cfd_write_mutex[i]);
 			_write(i, "S", 1);
 			_write(i, chat_id_text, l);
 			_write(i, " ", 1);
 			_write(i, name, name_length-1);
 			_write(i, "\n", 1);
 			_write(i, buf, bufsize);
+			pthread_mutex_unlock(&cfd_write_mutex[i]);
 		}
 	}
 }
 void list(int fd){
+	pthread_mutex_lock(&create_chat_mutex);
 	for(int i=0; i<MAX_CHATS; i++){
 		if(chat_exists[i]){
 			char buf[5];
 			int l = int_to_text(i, buf);
+			
+			pthread_mutex_lock(&cfd_write_mutex[fd]);
 			_write(fd, "L", 1);
 			_write(fd, buf, l);
 			_write(fd, " ", 1);
-			_write(fd, chat_name[i], chat_name_length[i]);
+			_write(fd, (char*) chat_name[i], chat_name_length[i]);
+			pthread_mutex_unlock(&cfd_write_mutex[fd]);
 		}
 	}
+	pthread_mutex_unlock(&create_chat_mutex);
 }
 
 void join(int chat_id, int fd, char* name, int name_length){
@@ -119,16 +129,16 @@ void leave(int chat_id, int fd, char* name, int name_length){
 
 int create(int fd, char* cname, int cname_length){
 	int i;
-	pthread_mutex_lock(&create_mutex); 
+	pthread_mutex_lock(&create_chat_mutex); 
 	for(i=0; i<MAX_CHATS; i++){
 		if(!chat_exists[i]){
-			memcpy(chat_name[i], cname, cname_length);
+			memcpy((char*) chat_name[i], cname, cname_length);
 			chat_name_length[i] = cname_length;
 			chat_exists[i] = 1;
 			break;
 		}
 	}
-	pthread_mutex_unlock(&create_mutex);
+	pthread_mutex_unlock(&create_chat_mutex);
 	return i;
 }
 
@@ -207,6 +217,10 @@ int main(int argc, char **argv){
 	chat_name[0][3]='n';
 	chat_name[0][4]='\0';
 	chat_name_length[0] = 5;
+
+	for(int i=0; i<MAX_CHATS+1; i++) pthread_mutex_init(&chat_mutex[i], NULL);
+	for(int i=0; i<MAX_THREADS+10; i++) pthread_mutex_init(&cfd_write_mutex[i], NULL);
+
 	saddr.sin_family = AF_INET;
 	saddr.sin_addr.s_addr = INADDR_ANY;
 	saddr.sin_port = htons(1234);
