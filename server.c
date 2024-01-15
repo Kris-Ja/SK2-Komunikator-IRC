@@ -127,7 +127,7 @@ void send_message(int chat_id, char* name, int name_length, char* buf, int bufsi
 }
 void list(int fd){
 	pthread_mutex_lock(&create_chat_mutex);
-	for(int i=0; i<MAX_CHATS; i++){
+	for(int i=0; i<MAX_CHATS+1; i++){
 		if(chat_exists[i]){
 			char buf[5];
 			int l = int_to_text(i, buf);
@@ -160,7 +160,7 @@ void leave(int chat_id, int fd, char* name, int name_length){
 int create(int fd, char* cname, int cname_length){
 	int i;
 	pthread_mutex_lock(&create_chat_mutex); 
-	for(i=0; i<MAX_CHATS; i++){
+	for(i=0; i<MAX_CHATS+1; i++){
 		if(!chat_exists[i]){
 			memcpy((char*) chat_name[i], cname, cname_length);
 			chat_name_length[i] = cname_length;
@@ -242,12 +242,13 @@ int main(int argc, char **argv){
 	int sfd, on=1;
 	struct sockaddr_in saddr, caddr;
 
-	chat_name[0][0]='m';
-	chat_name[0][1]='a';
-	chat_name[0][2]='i';
-	chat_name[0][3]='n';
-	chat_name[0][4]='\0';
+	chat_name[0][0] = 'm';
+	chat_name[0][1] = 'a';
+	chat_name[0][2] = 'i';
+	chat_name[0][3] = 'n';
+	chat_name[0][4] = '\0';
 	chat_name_length[0] = 5;
+	chat_exists[0] = 1;
 
 	for(int i=0; i<MAX_CHATS+1; i++) pthread_mutex_init(&chat_fd_set_mutex[i], NULL);
 	for(int i=0; i<MAX_THREADS+10; i++) pthread_mutex_init(&cfd_write_mutex[i], NULL);
