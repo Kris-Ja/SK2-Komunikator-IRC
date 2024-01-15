@@ -7,8 +7,8 @@
 #include<stdio.h>
 #include<sys/wait.h>
 #include<pthread.h>
-#define MAX_THREADS 5
-#define MAX_CHATS 2
+#define MAX_THREADS 30
+#define MAX_CHATS 30
 #define MAX_CMD_SIZE 300
 #define MAX_USERNAME_SIZE 30
 #define MAX_CHATNAME_SIZE 200
@@ -257,7 +257,7 @@ void* cthread(void* arg){
 
 	printf("new connection from %s:%d\n", inet_ntoa((struct in_addr)caddr.sin_addr), ntohs(caddr.sin_port));
 	name_length = _read(cfd, name, sizeof(name));
-	if(name_length == 0){
+	if(name_length == 1){
 		printf("disconnected from %s:%d\n", inet_ntoa((struct in_addr)caddr.sin_addr), ntohs(caddr.sin_port));
 		cthread_close(client_info, name, name_length);
 		return 0;
@@ -265,11 +265,7 @@ void* cthread(void* arg){
 	join(0, cfd, name, name_length);
 	while(1){
 		int n = _read(cfd, buf, sizeof(buf));
-		if(n == 0){
-			printf("disconnected from %s:%d\n", inet_ntoa((struct in_addr)caddr.sin_addr), ntohs(caddr.sin_port));
-			cthread_close(client_info, name, name_length);
-			return 0;
-		}
+		if(n == 1) continue;
 		int chat_id;
 		switch(buf[0]){
 			case 'L':
@@ -279,17 +275,19 @@ void* cthread(void* arg){
 				chat_id = buf[1]- '0';
 				int i = 2;
 				while(buf[i] != ' ') chat_id = chat_id*10 + buf[i++] - '0';
+				if(chat_id > MAX_CHATS) continue;
 				if(fd_isset(cfd, chat_id)) send_message(chat_id, name, name_length, buf+i+1, n-i-1);
-				// Todo?: else send error message
 				break;
 			case 'J':
 				chat_id = buf[1] - '0';
 				for(int i=2; i<n-1; i++) chat_id = chat_id*10 + buf[i] - '0';
+				if(chat_id > MAX_CHATS) continue;
 				if(!fd_isset(cfd, chat_id) && chat_exists(chat_id)) join(chat_id, cfd, name, name_length);
 				break;
 			case 'E':
 				chat_id = buf[1] - '0';
 				for(int i=2; i<n-1; i++) chat_id = chat_id*10 + buf[i] - '0';
+				if(chat_id > MAX_CHATS) continue;
 				if(fd_isset(cfd, chat_id)) leave(chat_id, cfd, name, name_length);
 				break;
 			case 'C':
