@@ -8,6 +8,7 @@
 #include <cstring>
 #include "mainpage.h"
 #include "ui_mainpage.h"
+#include "namechannel.h"
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -54,7 +55,9 @@ void mainpage::on_sendButton_clicked()
 
 void mainpage::on_channelButton_clicked()
 {
-
+    NameChannel* nameChannel = new NameChannel(fd);
+    nameChannel->setAttribute(Qt::WA_DeleteOnClose);
+    nameChannel->show();
 }
 
 void mainpage::onMessageReceived(QString username, QString message)
