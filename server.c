@@ -25,7 +25,7 @@ static volatile fd_set chat_fd_set[MAX_CHATS+1];
 static pthread_mutex_t n_threads_mutex = PTHREAD_MUTEX_INITIALIZER,
 					   create_chat_mutex = PTHREAD_MUTEX_INITIALIZER,
 					   cfd_write_mutex[MAX_THREADS+10],
-					   chat_mutex[MAX_CHATS+1];
+					   chat_fd_set_mutex[MAX_CHATS+1];
 
 int _write(int fd, char *buf, int len){
 	int l = len;
@@ -118,12 +118,16 @@ void list(int fd){
 }
 
 void join(int chat_id, int fd, char* name, int name_length){
+	pthread_mutex_lock(&chat_fd_set_mutex[chat_id]);
 	FD_SET(fd, &chat_fd_set[chat_id]);
+	pthread_mutex_unlock(&chat_fd_set_mutex[chat_id]);
 	send_user_join(chat_id, name, name_length);
 }
 
 void leave(int chat_id, int fd, char* name, int name_length){
+	pthread_mutex_lock(&chat_fd_set_mutex[chat_id]);
 	FD_CLR(fd, &chat_fd_set[chat_id]);
+	pthread_mutex_unlock(&chat_fd_set_mutex[chat_id]);
 	send_user_leave(chat_id, name, name_length);
 }
 
@@ -218,7 +222,7 @@ int main(int argc, char **argv){
 	chat_name[0][4]='\0';
 	chat_name_length[0] = 5;
 
-	for(int i=0; i<MAX_CHATS+1; i++) pthread_mutex_init(&chat_mutex[i], NULL);
+	for(int i=0; i<MAX_CHATS+1; i++) pthread_mutex_init(&chat_fd_set_mutex[i], NULL);
 	for(int i=0; i<MAX_THREADS+10; i++) pthread_mutex_init(&cfd_write_mutex[i], NULL);
 
 	saddr.sin_family = AF_INET;
