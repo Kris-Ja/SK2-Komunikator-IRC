@@ -294,6 +294,7 @@ void* cthread(void* arg){
 				break;
 			case 'C':
 				chat_id = create(cfd, buf+1, n-1);
+				join(chat_id, cfd, name, name_length);
 				break;
 		}
 	}
