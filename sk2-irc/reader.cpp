@@ -18,28 +18,51 @@ Reader::Reader(SOCKET newfd)
 void Reader::run()
 {
     char buf[MAX_CMD_SIZE];
+    int chat_id,i;
+    std::string username, message;
 
     while(1)
     {
-        if(_read(fd,buf,sizeof(buf))==0) break;
+        if(_read(fd,buf,sizeof(buf))==0) break; //server closed
 
         printf("%s\n",buf);
         fflush(stdout);
 
         //get chat id
-        int chat_id = buf[1]- '0';
-        int i = 2;
+        chat_id = buf[1]- '0';
+        i = 2;
         while(buf[i] != ' ') chat_id = chat_id*10 + buf[i++] - '0';
-
         i++;
-        std::string username = "";
-        std::string message = "";
 
-        while(buf[i] != '\n') username+=buf[i++];
-        i++;
-        while(buf[i] != '\0') message+=buf[i++];
+        switch(buf[0])
+        {
+            case 'S': //new message
+                username = "";
+                message = "";
 
-        emit newMessage(QString::fromStdString(username),QString::fromStdString(message));
+                while(buf[i] != '\n') username+=buf[i++];
+                i++;
+                while(buf[i] != '\0') message+=buf[i++];
+
+                emit newMessage(QString::fromStdString(username),QString::fromStdString(message));
+                break;
+            case 'J': //user joined chat
+                username = "";
+                while(buf[i] != '\0') username+=buf[i++];
+                //TO DO: EMIT
+                break;
+            case 'E': //user left chat
+                username = "";
+                while(buf[i] != '\0') username+=buf[i++];
+                //TO DO: EMIT
+                break;
+            case 'L': //list channel
+                //TO DO: EMIT
+                break;
+            case 'B': //response after creating channel
+                //TO DO: EMIT
+                break;
+        }
     }
     std::cout<<"it's so over"<<std::endl;
 }
