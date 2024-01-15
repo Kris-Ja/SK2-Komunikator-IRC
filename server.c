@@ -79,8 +79,34 @@ int int_to_text(int n, char*text){
 }
 
 void send_user_join(int chat_id, char* name, int name_length){
+	for(int i=0; i<=MAX_THREADS+10; i++){
+		if(FD_ISSET(i, &chat_fd_set[chat_id])){
+			char chat_id_text[5];
+			int l = int_to_text(chat_id, chat_id_text);
+			
+			pthread_mutex_lock(&cfd_write_mutex[i]);
+			_write(i, "J", 1);
+			_write(i, chat_id_text, l);
+			_write(i, " ", 1);
+			_write(i, name, name_length);
+			pthread_mutex_unlock(&cfd_write_mutex[i]);
+		}
+	}
 }
 void send_user_leave(int chat_id, char* name, int name_length){
+	for(int i=0; i<=MAX_THREADS+10; i++){
+		if(FD_ISSET(i, &chat_fd_set[chat_id])){
+			char chat_id_text[5];
+			int l = int_to_text(chat_id, chat_id_text);
+			
+			pthread_mutex_lock(&cfd_write_mutex[i]);
+			_write(i, "E", 1);
+			_write(i, chat_id_text, l);
+			_write(i, " ", 1);
+			_write(i, name, name_length);
+			pthread_mutex_unlock(&cfd_write_mutex[i]);
+		}
+	}
 }
 void send_message(int chat_id, char* name, int name_length, char* buf, int bufsize){
 	for(int i=0; i<=MAX_THREADS+10; i++){
@@ -168,7 +194,7 @@ void* cthread(void* arg){
 	printf("new connection from %s:%d\n", inet_ntoa((struct in_addr)caddr.sin_addr), ntohs(caddr.sin_port));
 	name_length = _read(cfd, name, sizeof(name));
 	if(name_length == 0){
-		//LOG
+		printf("disconnected from %s:%d\n", inet_ntoa((struct in_addr)caddr.sin_addr), ntohs(caddr.sin_port));
 		cthread_close(client_info, name, name_length);
 		return 0;
 	}
@@ -176,7 +202,7 @@ void* cthread(void* arg){
 	while(1){
 		int n = _read(cfd, buf, sizeof(buf));
 		if(n == 0){
-			//LOG
+			printf("disconnected from %s:%d\n", inet_ntoa((struct in_addr)caddr.sin_addr), ntohs(caddr.sin_port));
 			cthread_close(client_info, name, name_length);
 			return 0;
 		}
