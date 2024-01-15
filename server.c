@@ -189,7 +189,8 @@ void* cthread(void* arg){
 				chat_id = buf[1]- '0';
 				int i = 2;
 				while(buf[i] != ' ') chat_id = chat_id*10 + buf[i++] - '0';
-				send_message(chat_id, name, name_length, buf+i+1, n-i-1);
+				if(FD_ISSET(cfd, &chat_fd_set[chat_id])) send_message(chat_id, name, name_length, buf+i+1, n-i-1);
+				// Todo?: else send error message
 				break;
 			case 'J':
 				chat_id = buf[1] - '0';
