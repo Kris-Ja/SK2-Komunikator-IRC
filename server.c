@@ -101,15 +101,32 @@ void send_chat_create(int fd, int chat_id, char* chat_name, int chat_name_length
 	_write(fd, chat_id_text, l);
 	_write(fd, " ", 1);
 	_write(fd, chat_name, chat_name_length);
-	pthread_mutex_lock(&cfd_write_mutex[fd]);
+	pthread_mutex_unlock(&cfd_write_mutex[fd]);
+}
+
+void send_chat_new(int exclude_fd, int chat_id, char* chat_name, int chat_name_length){
+	char chat_id_text[5];
+	int l = int_to_text(chat_id, chat_id_text);
+
+	for(int i=0; i<=MAX_THREADS+10; i++){
+		if(i != exclude_fd && fd_isset(i, 0)){
+			pthread_mutex_lock(&cfd_write_mutex[i]);
+			_write(i, "L", 1);
+			_write(i, chat_id_text, l);
+			_write(i, " ", 1);
+			_write(i, chat_name, chat_name_length);
+			pthread_mutex_unlock(&cfd_write_mutex[i]);
+		}
+	}
+
 }
 
 void send_user_join(int chat_id, char* name, int name_length){
+	char chat_id_text[5];
+	int l = int_to_text(chat_id, chat_id_text);
+			
 	for(int i=0; i<=MAX_THREADS+10; i++){
 		if(fd_isset(i, chat_id)){
-			char chat_id_text[5];
-			int l = int_to_text(chat_id, chat_id_text);
-			
 			pthread_mutex_lock(&cfd_write_mutex[i]);
 			_write(i, "J", 1);
 			_write(i, chat_id_text, l);
@@ -212,7 +229,10 @@ int create(int fd, char* cname, int cname_length){
 		}
 		pthread_mutex_unlock(&chat_fd_set_mutex[i]);
 	}
-	if(n != -1) send_chat_create(fd, n, cname, cname_length);
+	if(n != -1){
+		send_chat_create(fd, n, cname, cname_length); // send C to fd
+		send_chat_new(fd, n, cname, cname_length); // send L to all except fd
+	}
 	return n;
 }
 
