@@ -209,7 +209,7 @@ void send_message(int chat_id, char* name, int name_length, char* buf, int bufsi
 }
 
 void list(int fd){
-	for(int i=0; i<MAX_CHATS+1; i++){
+	for(int i=1; i<MAX_CHATS+1; i++){
 		pthread_mutex_lock(&chat_fd_set_mutex[i]);
 		if(chat_creator[i]){
 			char buf[5];
@@ -309,6 +309,9 @@ void* cthread(void* arg){
 	pthread_mutex_unlock(&username_mutex);
 
 	join(0, cfd, name, name_length);
+
+	list(cfd);
+
 	while(1){
 		int n = _read(cfd, buf, sizeof(buf));
 		if(n == 0){
@@ -326,19 +329,19 @@ void* cthread(void* arg){
 				chat_id = buf[1]- '0';
 				int i = 2;
 				while(buf[i] != ' ') chat_id = chat_id*10 + buf[i++] - '0';
-				if(chat_id > MAX_CHATS) continue;
+				if(chat_id > MAX_CHATS || chat_id < 0) continue;
 				if(fd_isset(cfd, chat_id)) send_message(chat_id, name, name_length, buf+i+1, n-i-1);
 				break;
 			case 'J':
 				chat_id = buf[1] - '0';
 				for(int i=2; i<n-1; i++) chat_id = chat_id*10 + buf[i] - '0';
-				if(chat_id > MAX_CHATS) continue;
+				if(chat_id > MAX_CHATS || chat_id < 0) continue;
 				if(!fd_isset(cfd, chat_id) && chat_exists(chat_id)) join(chat_id, cfd, name, name_length);
 				break;
 			case 'E':
 				chat_id = buf[1] - '0';
 				for(int i=2; i<n-1; i++) chat_id = chat_id*10 + buf[i] - '0';
-				if(chat_id > MAX_CHATS) continue;
+				if(chat_id > MAX_CHATS || chat_id < 0) continue;
 				if(fd_isset(cfd, chat_id)) leave(chat_id, cfd, name, name_length);
 				break;
 			case 'C':
