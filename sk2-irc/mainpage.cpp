@@ -22,19 +22,23 @@ mainpage::mainpage(SOCKET newfd, QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::mainpage)
 {
-    //initialise channels
+    ui->setupUi(this);
+
+    //initialise widgets for channels
     for(int i=0; i<30; i++)
     {
         QListWidget* newListWidget = new QListWidget(this);
         userLists[i] = newListWidget;
+        ui->gridLayout->addWidget(userLists[i],1,2);
+        userLists[i]->setMaximumWidth(150);
         userLists[i]->hide();
 
         QTextBrowser* newTextBrowser = new QTextBrowser(this);
         chats[i] = newTextBrowser;
+        ui->gridLayout->addWidget(chats[i],1,1);
         chats[i]->hide();
     }
 
-    ui->setupUi(this);
     ui->currentChannelLabel->setText("Main channel");
     ui->channelList->addItem("0 - main channel");
     fd = newfd;
