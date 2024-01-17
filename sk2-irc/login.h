@@ -2,6 +2,7 @@
 #define LOGIN_H
 
 #include <QWidget>
+#include <openssl/ssl.h>
 #include "mainpage.h"
 
 namespace Ui {
@@ -24,6 +25,7 @@ private:
     void openMainWindow(mainpage*, QString);
     void saveUsername(QString);
     void establishConnection(QString,QString);
+    int _write(SSL* ssl, char *buf, int len);
 };
 
 #endif // LOGIN_H

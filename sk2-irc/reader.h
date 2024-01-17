@@ -5,13 +5,14 @@
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
+#include <openssl/ssl.h>
 
 class Reader : public QThread
 {
     Q_OBJECT
 
 public:
-    Reader(SOCKET);
+    Reader(SOCKET, SSL_CTX*, SSL*);
 
 signals:
     void newMessage(int chat_id, QString username, QString message);
@@ -24,8 +25,10 @@ protected:
     void run();
 
 private:
-    int _read(int, char*, int);
+    int _read(SSL*, char*, int);
     SOCKET fd;
+    SSL_CTX* ctx;
+    SSL* ssl;
 };
 
 #endif // READER_H

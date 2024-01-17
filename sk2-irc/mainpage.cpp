@@ -9,6 +9,7 @@
 #include <vector>
 #include <QListWidget>
 #include <QTextBrowser>
+#include <openssl/ssl.h>
 //#include <QListWidgetItem>
 #include "mainpage.h"
 #include "ui_mainpage.h"
@@ -18,7 +19,7 @@
 
 std::string username;
 
-mainpage::mainpage(SOCKET newfd, QWidget *parent)
+mainpage::mainpage(SOCKET newfd, SSL_CTX* newctx, SSL* newssl, QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::mainpage)
 {
@@ -41,7 +42,11 @@ mainpage::mainpage(SOCKET newfd, QWidget *parent)
 
     ui->currentChannelLabel->setText("0 - main channel");
     ui->channelList->addItem("0 - main channel");
+
     fd = newfd;
+    ctx = newctx;
+    ssl = newssl;
+
     currentChat = 0;
     userLists[0] = ui->userList;
     chats[0] = ui->textBrowser;
@@ -51,6 +56,17 @@ mainpage::mainpage(SOCKET newfd, QWidget *parent)
 mainpage::~mainpage()
 {
     delete ui;
+}
+
+int mainpage::_write(SSL* ssl, char *buf, int len){
+    int l = len;
+    while (len > 0) {
+        int i = SSL_write(ssl, buf, len);
+        if(i == 0) return 0;
+        len -= i;
+        buf += i;
+    }
+    return l;
 }
 
 void mainpage::getUser()
@@ -69,17 +85,17 @@ void mainpage::on_sendButton_clicked()
     newMessage = "S" + QString::number(currentChat) + " " + newMessage;
     //convert to const char*
     QByteArray ba = newMessage.toUtf8();
-    const char *toSend = ba.data();
+    char *toSend = ba.data();
     //send
     std::cout<<strlen(toSend)<<std::endl;
-    send(fd,toSend,strlen(toSend)+1, 0);
+    _write(ssl,toSend,strlen(toSend)+1);
 
     ui->textEdit->clear();
 }
 
 void mainpage::on_channelButton_clicked()
 {
-    NameChannel* nameChannel = new NameChannel(fd);
+    NameChannel* nameChannel = new NameChannel(fd, ctx, ssl);
     nameChannel->setAttribute(Qt::WA_DeleteOnClose);
     nameChannel->show();
 }
@@ -153,10 +169,10 @@ void mainpage::on_channelList_itemDoubleClicked(QListWidgetItem *item) //leave c
     //send message to server
     QString newMessage = "E" + QString::number(chat_id);
     QByteArray ba = newMessage.toUtf8();
-    const char *toSend = ba.data();
+    char *toSend = ba.data();
     //send
     std::cout<<strlen(toSend)<<std::endl;
-    send(fd,toSend,strlen(toSend)+1, 0);
+    _write(ssl,toSend,strlen(toSend)+1);
 
     //hide chat if current visible and show main
     if(chat_id == currentChat)
@@ -188,10 +204,10 @@ void mainpage::on_channelList_itemClicked(QListWidgetItem *item) //join and view
         //send message to server
         QString newMessage = "J" + QString::number(chat_id);
         QByteArray ba = newMessage.toUtf8();
-        const char *toSend = ba.data();
+        char *toSend = ba.data();
         //send
         std::cout<<strlen(toSend)<<std::endl;
-        send(fd,toSend,strlen(toSend)+1, 0);
+        _write(ssl,toSend,strlen(toSend)+1);
 
         //remove + from channel name
         QList<QListWidgetItem *> items = ui->channelList->findItems(name, Qt::MatchExactly);
@@ -216,4 +232,5 @@ void mainpage::on_channelList_itemClicked(QListWidgetItem *item) //join and view
     chats[chat_id]->show();
     userLists[chat_id]->show();
 }
+
 
