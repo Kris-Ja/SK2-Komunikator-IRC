@@ -25,7 +25,7 @@ public:
 
 public slots:
     void onMessageReceived(int chat_id, QString username, QString message);
-    void onChannelCreated(int chat_id, QString channelName);
+    void onChannelCreated(int chat_id, QString channelName, bool joined);
     void onUserJoined(int chat_id, QString username);
     void onChannelDeleted(int chat_id);
     void onUserLeft(int chat_id, QString username);
@@ -35,6 +35,8 @@ private slots:
     void on_channelButton_clicked();
 
     void on_channelList_itemDoubleClicked(QListWidgetItem *item);
+
+    void on_channelList_itemClicked(QListWidgetItem *item);
 
 private:
     Ui::mainpage *ui;
