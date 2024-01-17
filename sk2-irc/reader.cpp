@@ -5,14 +5,17 @@
 #include <windows.h>
 #include <ws2tcpip.h>
 #include <stdio.h>
+#include <openssl/ssl.h>
 #include "reader.h"
 #include "mainpage.h"
 
 #define MAX_CMD_SIZE 300
 
-Reader::Reader(SOCKET newfd)
+Reader::Reader(SOCKET newfd, SSL_CTX* newctx, SSL* newssl)
 {
     fd = newfd;
+    ctx = newctx;
+    ssl = newssl;
 }
 
 void Reader::run()
@@ -23,7 +26,7 @@ void Reader::run()
 
     while(1)
     {
-        if(_read(fd,buf,sizeof(buf))==0) break; //server closed
+        if(_read(ssl,buf,sizeof(buf))==0) break; //server closed
 
         printf("%s\n",buf);
         fflush(stdout);
@@ -84,7 +87,7 @@ void Reader::run()
     std::cout<<"it's so over"<<std::endl;
 }
 
-int Reader::_read(int fd, char *buf, int bufsize)
+int Reader::_read(SSL* ssl, char *buf, int bufsize)
 {
     static int last_size = 0;
     static char last_buf[MAX_CMD_SIZE];
@@ -97,7 +100,7 @@ int Reader::_read(int fd, char *buf, int bufsize)
             return i+1;
         }
     do {
-        int i = recv(fd, buf+l, bufsize, 0);
+        int i = SSL_read(ssl, buf+l, bufsize);
         if(i == 0) return 0;
         bufsize -= i;
         l += i;

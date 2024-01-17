@@ -8,6 +8,7 @@
 #include <QListWidget>
 #include <QTextBrowser>
 #include <vector>
+#include <openssl/ssl.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -20,7 +21,7 @@ class mainpage : public QWidget
     Q_OBJECT
 
 public:
-    mainpage(SOCKET, QWidget *parent = nullptr);
+    mainpage(SOCKET, SSL_CTX*, SSL*, QWidget *parent = nullptr);
     ~mainpage();
 
 public slots:
@@ -45,5 +46,8 @@ private:
     int currentChat;
     QListWidget* userLists[30];
     QTextBrowser* chats[30];
+    int _write(SSL* ssl, char *buf, int len);
+    SSL_CTX* ctx;
+    SSL* ssl;
 };
 #endif // MAINPAGE_H
