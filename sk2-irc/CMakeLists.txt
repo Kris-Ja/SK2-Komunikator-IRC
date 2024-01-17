@@ -45,6 +45,8 @@ else()
     endif()
 endif()
 
+find_package(OpenSSL REQUIRED)
+target_link_libraries(sk2-irc PRIVATE OpenSSL::SSL OpenSSL::Crypto)
 target_link_libraries(sk2-irc PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 if(WIN32)
     target_link_libraries(sk2-irc PRIVATE ws2_32)
