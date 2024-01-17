@@ -9,33 +9,16 @@
    <property name="verticalSpacing">
     <number>1</number>
    </property>
-   <item row="1" column="1">
-    <widget class="QTextBrowser" name="textBrowser">
-     <property name="maximumSize">
-      <size>
-       <width>16777215</width>
-       <height>16777215</height>
-      </size>
+   <item row="0" column="2">
+    <widget class="QLabel" name="label_2">
+     <property name="font">
+      <font>
+       <family>Yu Gothic</family>
+       <pointsize>12</pointsize>
+      </font>
      </property>
-    </widget>
-   </item>
-   <item row="1" column="2">
-    <widget class="QTextBrowser" name="peopleBrowser">
-     <property name="maximumSize">
-      <size>
-       <width>150</width>
-       <height>16777215</height>
-      </size>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="QTextBrowser" name="channelBrowser">
-     <property name="maximumSize">
-      <size>
-       <width>150</width>
-       <height>16777215</height>
-      </size>
+     <property name="text">
+      <string>Users online</string>
      </property>
     </widget>
    </item>
@@ -58,6 +41,29 @@
      </property>
     </widget>
    </item>
+   <item row="0" column="0">
+    <widget class="QLabel" name="label">
+     <property name="font">
+      <font>
+       <family>Yu Gothic</family>
+       <pointsize>12</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Available channels</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QTextBrowser" name="textBrowser">
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>16777215</height>
+      </size>
+     </property>
+    </widget>
+   </item>
    <item row="2" column="1">
     <widget class="QTextEdit" name="textEdit">
      <property name="maximumSize">
@@ -65,6 +71,19 @@
        <width>16777215</width>
        <height>60</height>
       </size>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QLabel" name="currentChannelLabel">
+     <property name="font">
+      <font>
+       <family>Yu Gothic</family>
+       <pointsize>12</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>TextLabel</string>
      </property>
     </widget>
    </item>
@@ -87,42 +106,23 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="0">
-    <widget class="QLabel" name="label">
-     <property name="font">
-      <font>
-       <family>Yu Gothic</family>
-       <pointsize>12</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>Available channels</string>
+   <item row="1" column="0">
+    <widget class="QListWidget" name="channelList">
+     <property name="maximumSize">
+      <size>
+       <width>150</width>
+       <height>16777215</height>
+      </size>
      </property>
     </widget>
    </item>
-   <item row="0" column="2">
-    <widget class="QLabel" name="label_2">
-     <property name="font">
-      <font>
-       <family>Yu Gothic</family>
-       <pointsize>12</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>Users online</string>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="1">
-    <widget class="QLabel" name="currentChannelLabel">
-     <property name="font">
-      <font>
-       <family>Yu Gothic</family>
-       <pointsize>12</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>TextLabel</string>
+   <item row="1" column="2">
+    <widget class="QListWidget" name="userList">
+     <property name="maximumSize">
+      <size>
+       <width>150</width>
+       <height>16777215</height>
+      </size>
      </property>
     </widget>
    </item>
