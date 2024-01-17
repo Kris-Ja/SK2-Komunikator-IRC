@@ -7,6 +7,7 @@
 #include<stdio.h>
 #include<sys/wait.h>
 #include<pthread.h>
+#include<openssl/ssl.h>
 
 #define MAX_THREADS 30
 #define MAX_CHATS 30
@@ -19,10 +20,12 @@ struct client_struct{
 	struct sockaddr_in caddr;
 };
 
+SSL_CTX* ctx;
 int n_threads = 0;
 int chat_creator[MAX_CHATS+1];
 int username_length[MAX_THREADS+10];
 char username[MAX_THREADS+10][MAX_USERNAME_SIZE];
+SSL* ssl[MAX_THREADS+10];
 char chat_name[MAX_CHATS+1][MAX_CHATNAME_SIZE];
 int chat_name_length[MAX_CHATS+1];
 fd_set chat_fd_set[MAX_CHATS+1];
@@ -48,7 +51,7 @@ int chat_exists(int chat_id){
 int _write(int fd, char *buf, int len){
 	int l = len;
 	while (len > 0) {
-		int i = write(fd, buf, len);
+		int i = SSL_write(ssl[fd], buf, len);
 		if(i == 0) return 0;
 		len -= i;
 		buf += i;
@@ -68,7 +71,7 @@ int _read(int fd, char *buf, int bufsize){
 		return i+1;
 	}
 	do {
-		int i = read(fd, buf+l, bufsize);
+		int i = SSL_read(ssl[fd], buf+l, bufsize);
 		if(i == 0) return 0;
 		bufsize -= i;
 		l += i;
@@ -99,7 +102,7 @@ int int_to_text(int n, char*text){
 void send_users_in_chat(int fd, int chat_id){
 	char chat_id_text[5];
 	int l = int_to_text(chat_id, chat_id_text);
-	
+
 	pthread_mutex_lock(&username_mutex);
 	pthread_mutex_lock(&cfd_write_mutex[fd]);
 
@@ -161,7 +164,7 @@ void send_chat_destroy(int chat_id){
 void send_user_join(int chat_id, char* name, int name_length){
 	char chat_id_text[5];
 	int l = int_to_text(chat_id, chat_id_text);
-			
+
 	for(int i=0; i<=MAX_THREADS+10; i++){
 		if(fd_isset(i, chat_id)){
 			pthread_mutex_lock(&cfd_write_mutex[i]);
@@ -179,7 +182,7 @@ void send_user_leave(int chat_id, char* name, int name_length){
 		if(fd_isset(i, chat_id)){
 			char chat_id_text[5];
 			int l = int_to_text(chat_id, chat_id_text);
-			
+
 			pthread_mutex_lock(&cfd_write_mutex[i]);
 			_write(i, "E", 1);
 			_write(i, chat_id_text, l);
@@ -195,7 +198,7 @@ void send_message(int chat_id, char* name, int name_length, char* buf, int bufsi
 		if(fd_isset(i, chat_id)){
 			char chat_id_text[5];
 			int l = int_to_text(chat_id, chat_id_text);
-			
+
 			pthread_mutex_lock(&cfd_write_mutex[i]);
 			_write(i, "S", 1);
 			_write(i, chat_id_text, l);
@@ -214,7 +217,7 @@ void list(int fd){
 		if(chat_creator[i]){
 			char buf[5];
 			int l = int_to_text(i, buf);
-			
+
 			pthread_mutex_lock(&cfd_write_mutex[fd]);
 			_write(fd, "L", 1);
 			_write(fd, buf, l);
@@ -230,7 +233,7 @@ void join(int chat_id, int fd, char* name, int name_length){
 	pthread_mutex_lock(&chat_fd_set_mutex[chat_id]);
 	FD_SET(fd, &chat_fd_set[chat_id]);
 	pthread_mutex_unlock(&chat_fd_set_mutex[chat_id]);
-	
+
 	send_users_in_chat(fd, chat_id);
 	send_user_join(chat_id, name, name_length);
 }
@@ -240,7 +243,7 @@ void destroy(int chat_id){
 	chat_creator[chat_id] = 0;
 	FD_ZERO(&chat_fd_set[chat_id]);
 	pthread_mutex_unlock(&chat_fd_set_mutex[chat_id]);
-	send_chat_destroy(chat_id);	
+	send_chat_destroy(chat_id);
 }
 
 void leave(int chat_id, int fd, char* name, int name_length){
@@ -251,7 +254,7 @@ void leave(int chat_id, int fd, char* name, int name_length){
 	send_user_leave(chat_id, name, name_length);
 
 	// destroy chat when creator leaves
-	if(chat_exists(chat_id) == fd) destroy(chat_id); 
+	if(chat_exists(chat_id) == fd) destroy(chat_id);
 }
 
 int create(int fd, char* cname, int cname_length){
@@ -279,9 +282,13 @@ void cthread_close(struct client_struct* client_info, char* name, int name_lengt
 	if(name_length>0)
 		for(int i=0; i < MAX_CHATS+1; i++)
 			if(fd_isset(client_info->cfd, i)) leave(i, client_info->cfd, name, name_length);
+	pthread_mutex_lock(&cfd_write_mutex[client_info->cfd]);
+	SSL_free(ssl[client_info->cfd]);
+    pthread_mutex_unlock(&cfd_write_mutex[client_info->cfd]);
+
 	close(client_info->cfd);
 	free(client_info);
-	
+
 	pthread_mutex_lock(&n_threads_mutex);
 	n_threads--;
 	pthread_mutex_unlock(&n_threads_mutex);
@@ -295,7 +302,13 @@ void* cthread(void* arg){
 	struct sockaddr_in caddr = client_info->caddr;
 
 	printf("new connection from %s:%d\n", inet_ntoa((struct in_addr)caddr.sin_addr), ntohs(caddr.sin_port));
-	
+
+    pthread_mutex_lock(&cfd_write_mutex[cfd]);
+	ssl[cfd] = SSL_new(ctx);
+	SSL_set_fd(ssl[cfd], cfd);
+	SSL_accept(ssl[cfd]);
+    pthread_mutex_unlock(&cfd_write_mutex[cfd]);
+
 	name_length = _read(cfd, name, sizeof(name));
 	if(name_length < 2){
 		printf("disconnected from %s:%d\n", inet_ntoa((struct in_addr)caddr.sin_addr), ntohs(caddr.sin_port));
@@ -359,6 +372,13 @@ int main(int argc, char **argv){
 	int sfd, on=1;
 	struct sockaddr_in saddr, caddr;
 
+	SSL_load_error_strings();
+	SSL_library_init();
+	ctx = SSL_CTX_new(TLS_server_method());
+	SSL_CTX_use_certificate_file(ctx, "server.crt", SSL_FILETYPE_PEM);
+	SSL_CTX_use_PrivateKey_file(ctx, "server.key", SSL_FILETYPE_PEM);
+
+
 	chat_name[0][0] = 'm';
 	chat_name[0][1] = 'a';
 	chat_name[0][2] = 'i';
@@ -386,7 +406,7 @@ int main(int argc, char **argv){
 		while(n_threads >= MAX_THREADS) sleep(1);
 		client_info->cfd = accept(sfd, (struct sockaddr*)&client_info->caddr, &size);
 		pthread_create(&tid, NULL, cthread, client_info);
-		pthread_detach(tid);	
+		pthread_detach(tid);
 		pthread_mutex_lock(&n_threads_mutex);
 		n_threads++;
 		pthread_mutex_unlock(&n_threads_mutex);
