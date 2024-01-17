@@ -15,7 +15,7 @@ public:
 
 signals:
     void newMessage(int chat_id, QString username, QString message);
-    void newChannel(int chat_id, QString channelName);
+    void newChannel(int chat_id, QString channelName, bool joined);
     void userJoined(int chat_id, QString username);
     void channelDeleted(int chat_id);
     void userLeft(int chat_id, QString username);
