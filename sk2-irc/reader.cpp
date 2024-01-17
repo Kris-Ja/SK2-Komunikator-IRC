@@ -19,7 +19,7 @@ void Reader::run()
 {
     char buf[MAX_CMD_SIZE];
     int chat_id,i;
-    std::string username, message;
+    std::string username, message, channelName;
 
     while(1)
     {
@@ -31,7 +31,7 @@ void Reader::run()
         //get chat id
         chat_id = buf[1]- '0';
         i = 2;
-        while(buf[i] != ' ') chat_id = chat_id*10 + buf[i++] - '0';
+        while(buf[i] != ' ' && buf[i] != '\0') chat_id = chat_id*10 + buf[i++] - '0';
         i++;
 
         switch(buf[0])
@@ -44,23 +44,40 @@ void Reader::run()
                 i++;
                 while(buf[i] != '\0') message+=buf[i++];
 
-                emit newMessage(QString::fromStdString(username),QString::fromStdString(message));
+                emit newMessage(chat_id, QString::fromStdString(username),QString::fromStdString(message));
                 break;
             case 'J': //user joined chat
                 username = "";
                 while(buf[i] != '\0') username+=buf[i++];
-                //TO DO: EMIT
+
+                emit userJoined(chat_id, QString::fromStdString(username));
+                break;
+            case 'U': //user joined chat before us
+                username = "";
+                while(buf[i] != '\0') username+=buf[i++];
+
+                emit userJoined(chat_id, QString::fromStdString(username));
                 break;
             case 'E': //user left chat
                 username = "";
                 while(buf[i] != '\0') username+=buf[i++];
-                //TO DO: EMIT
+
+                emit userLeft(chat_id, QString::fromStdString(username));
                 break;
             case 'L': //list channel
-                //TO DO: EMIT
+                channelName = "";
+                while(buf[i] != '\0') channelName+=buf[i++];
+
+                emit newChannel(chat_id, QString::fromStdString(channelName));
                 break;
-            case 'B': //response after creating channel
-                //TO DO: EMIT
+            case 'D': //channel closed
+                emit channelDeleted(chat_id);
+                break;
+            case 'C': //response after creating channel
+                channelName = "";
+                while(buf[i] != '\0') channelName+=buf[i++];
+
+                emit newChannel(chat_id, QString::fromStdString(channelName));
                 break;
         }
     }

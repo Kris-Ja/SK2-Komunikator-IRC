@@ -14,7 +14,11 @@ public:
     Reader(SOCKET);
 
 signals:
-    void newMessage(QString username, QString message);
+    void newMessage(int chat_id, QString username, QString message);
+    void newChannel(int chat_id, QString channelName);
+    void userJoined(int chat_id, QString username);
+    void channelDeleted(int chat_id);
+    void userLeft(int chat_id, QString username);
 
 protected:
     void run();
