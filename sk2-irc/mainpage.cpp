@@ -39,7 +39,7 @@ mainpage::mainpage(SOCKET newfd, QWidget *parent)
         chats[i]->hide();
     }
 
-    ui->currentChannelLabel->setText("Main channel");
+    ui->currentChannelLabel->setText("0 - main channel");
     ui->channelList->addItem("0 - main channel");
     fd = newfd;
     currentChat = 0;
@@ -90,12 +90,13 @@ void mainpage::onMessageReceived(int chat_id, QString username, QString message)
     chats[chat_id]->append(newMessage);
 }
 
-void mainpage::onChannelCreated(int chat_id, QString channelName)
+void mainpage::onChannelCreated(int chat_id, QString channelName, bool joined)
 {
     //display channel name
     char* stringID;
     channelName = QString::fromUtf8(itoa(chat_id, stringID, 10)) + " - " + channelName;
-    ui->channelList->insertItem(chat_id, channelName);
+    if(joined == 0) channelName = channelName + " +";
+    ui->channelList->addItem(channelName);
     //QListWidgetItem *newItem = new QListWidgetItem;
     //newItem->setText(channelName);
     //ui->channelList->addItem(newItem);
@@ -114,7 +115,11 @@ void mainpage::onChannelDeleted(int chat_id)
     chats[chat_id]->clear();
 
     //delete from channel list
-    QListWidgetItem* deleted = ui->channelList->takeItem(chat_id);
+    QList<QListWidgetItem *> items = ui->channelList->findItems(QString::number(chat_id)+" ", Qt::MatchStartsWith);
+    if (items.size() > 0) {
+        int number = ui->channelList->row(items[0]);
+        QListWidgetItem* deleted = ui->channelList->takeItem(number);
+    }
 }
 
 void mainpage::onUserLeft(int chat_id, QString username)
@@ -127,15 +132,85 @@ void mainpage::onUserLeft(int chat_id, QString username)
     }
 }
 
-
-void mainpage::on_channelList_itemDoubleClicked(QListWidgetItem *item)
+void mainpage::on_channelList_itemDoubleClicked(QListWidgetItem *item) //leave chat
 {
-    ui->currentChannelLabel->setText(item->text());
-    int chat_id = ui->channelList->row(item);
+    QString name = item->text();
+    if(name.endsWith('+')) return; //user is not on chanel
 
+    //get chat id
+    int chat_id = name.front().unicode() - '0';
+    int i = 1;
+    while(name.at(i) != ' ') chat_id = chat_id*10 + name.at(i++).unicode() - '0';
+    std::cout<<"current chat to be deleted "<<chat_id<<std::endl;
+
+    //add + from channel name
+    QList<QListWidgetItem *> items = ui->channelList->findItems(name, Qt::MatchExactly);
+    if (items.size() > 0) {
+        int number = ui->channelList->row(items[0]);
+        QListWidgetItem* deleted = ui->channelList->takeItem(number);
+        ui->channelList->addItem(name+" +");
+    }
+    //send message to server
+    QString newMessage = "E" + QString::number(chat_id);
+    QByteArray ba = newMessage.toUtf8();
+    const char *toSend = ba.data();
+    //send
+    std::cout<<strlen(toSend)<<std::endl;
+    send(fd,toSend,strlen(toSend)+1, 0);
+
+    //hide chat if current visible and show main
+    if(chat_id == currentChat)
+    {
+        ui->currentChannelLabel->setText("0 - main channel");
+
+        chats[currentChat]->hide();
+        userLists[currentChat]->hide();
+
+        currentChat = 0;
+
+        chats[0]->show();
+        userLists[0]->show();
+    }
+}
+
+void mainpage::on_channelList_itemClicked(QListWidgetItem *item) //join and view chat
+{
+    QString name = item->text();
+
+    //get chat id
+    int chat_id = name.front().unicode() - '0';
+    int i = 1;
+    while(name.at(i) != ' ') chat_id = chat_id*10 + name.at(i++).unicode() - '0';
+
+    //check if user already joined channel
+    if(name.endsWith('+'))
+    {
+        //send message to server
+        QString newMessage = "J" + QString::number(chat_id);
+        QByteArray ba = newMessage.toUtf8();
+        const char *toSend = ba.data();
+        //send
+        std::cout<<strlen(toSend)<<std::endl;
+        send(fd,toSend,strlen(toSend)+1, 0);
+
+        //remove + from channel name
+        QList<QListWidgetItem *> items = ui->channelList->findItems(name, Qt::MatchExactly);
+        if (items.size() > 0) {
+            int number = ui->channelList->row(items[0]);
+            QListWidgetItem* deleted = ui->channelList->takeItem(number);
+        }
+        name.chop(2);
+        ui->channelList->addItem(name);
+
+        //clear channel widgets
+        chats[chat_id]->clear();
+        userLists[chat_id]->clear();
+    }
+
+    //set channel as visible
     chats[currentChat]->hide();
     userLists[currentChat]->hide();
-
+    ui->currentChannelLabel->setText(name);
     currentChat = chat_id;
 
     chats[chat_id]->show();

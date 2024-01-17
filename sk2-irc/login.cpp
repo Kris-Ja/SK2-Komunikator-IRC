@@ -38,7 +38,9 @@ void login::on_confirmButton_clicked()
     establishConnection(address, port);
     saveUsername(username);
 
-    send(fd,username.toStdString().c_str(),sizeof(username.toStdString().c_str()), 0);
+    QByteArray ba = username.toUtf8();
+    const char *toSend = ba.data();
+    send(fd,toSend,strlen(toSend)+1, 0);
 
     Reader* reader = new Reader(fd);
     mainpage* mainPage = new mainpage(fd);

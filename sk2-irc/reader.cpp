@@ -68,7 +68,7 @@ void Reader::run()
                 channelName = "";
                 while(buf[i] != '\0') channelName+=buf[i++];
 
-                emit newChannel(chat_id, QString::fromStdString(channelName));
+                emit newChannel(chat_id, QString::fromStdString(channelName), 0);
                 break;
             case 'D': //channel closed
                 emit channelDeleted(chat_id);
@@ -77,7 +77,7 @@ void Reader::run()
                 channelName = "";
                 while(buf[i] != '\0') channelName+=buf[i++];
 
-                emit newChannel(chat_id, QString::fromStdString(channelName));
+                emit newChannel(chat_id, QString::fromStdString(channelName), 1);
                 break;
         }
     }
