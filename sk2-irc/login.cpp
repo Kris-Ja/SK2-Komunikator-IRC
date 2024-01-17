@@ -43,6 +43,10 @@ void login::on_confirmButton_clicked()
     Reader* reader = new Reader(fd);
     mainpage* mainPage = new mainpage(fd);
     connect(reader,Reader::newMessage,mainPage,mainpage::onMessageReceived);
+    connect(reader,Reader::newChannel,mainPage,mainpage::onChannelCreated);
+    connect(reader,Reader::userJoined,mainPage,mainpage::onUserJoined);
+    connect(reader,Reader::channelDeleted,mainPage,mainpage::onChannelDeleted);
+    connect(reader,Reader::userLeft,mainPage,mainpage::onUserLeft);
     reader->start();
 
     openMainWindow(mainPage,username);
