@@ -416,7 +416,7 @@ void* cthread(void* arg){
 				// calculate chat_id (number from string)
 				chat_id = buf[1] - '0';
 				for(int i=2; i<n-1; i++) chat_id = chat_id*10 + buf[i] - '0';
-				if(chat_id > MAX_CHATS || chat_id < 0) continue;
+				if(chat_id > MAX_CHATS || chat_id <= 0) continue;
 				
 				// leave chat if client in chat
 				if(fd_isset(cfd, chat_id)) leave(chat_id, cfd, name, name_length);
@@ -436,12 +436,23 @@ int main(int argc, char **argv){
 	struct sockaddr_in saddr, caddr;
 
 	// initialize SSL library
-	SSL_load_error_strings();
-	SSL_library_init();
-	ctx = SSL_CTX_new(TLS_server_method());
-	SSL_CTX_use_certificate_file(ctx, "server.crt", SSL_FILETYPE_PEM);
-	SSL_CTX_use_PrivateKey_file(ctx, "server.key", SSL_FILETYPE_PEM);
-
+    if(!SSL_load_error_strings()){
+        printf("error: initializing SSL library\n");
+        return 0;
+    }
+    if(!SSL_library_init()){
+        printf("error: initializing SSL library\n");
+        return 0;
+    }
+    ctx = SSL_CTX_new(TLS_server_method());
+    if(!SSL_CTX_use_certificate_file(ctx, "server.crt", SSL_FILETYPE_PEM)){
+        printf("error: initializing SSL library, please generate certificate file (no server.crt file found)\n");
+        return 0;
+    }
+    if(!SSL_CTX_use_PrivateKey_file(ctx, "server.key", SSL_FILETYPE_PEM)){
+        printf("error: initializing SSL library, please generate certificate file (no server.key file found)\n");
+        return 0;
+    }
 
 	chat_name[0][0] = 'm';
 	chat_name[0][1] = 'a';
