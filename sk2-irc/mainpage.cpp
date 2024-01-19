@@ -120,12 +120,26 @@ void mainpage::onChannelCreated(int chat_id, QString channelName, bool joined)
 
 void mainpage::onUserJoined(int chat_id, QString username)
 {
-    //chats[chat_id]->append(username + " joined the chat");
+    chats[chat_id]->append(username + " joined the chat");
     userLists[chat_id]->addItem(username);
 }
 
 void mainpage::onChannelDeleted(int chat_id)
 {
+    //hide chat if currently visible and show main
+    if(chat_id == currentChat)
+    {
+        ui->currentChannelLabel->setText("0 - main channel");
+
+        chats[currentChat]->hide();
+        userLists[currentChat]->hide();
+
+        currentChat = 0;
+
+        chats[0]->show();
+        userLists[0]->show();
+    }
+    
     //clear channel view
     userLists[chat_id]->clear();
     chats[chat_id]->clear();
@@ -153,6 +167,8 @@ void mainpage::on_channelList_itemDoubleClicked(QListWidgetItem *item) //leave c
     QString name = item->text();
     if(name.endsWith('+')) return; //user is not on chanel
 
+    if(name=="0 - main channel") return;
+
     //get chat id
     int chat_id = name.front().unicode() - '0';
     int i = 1;
@@ -174,7 +190,7 @@ void mainpage::on_channelList_itemDoubleClicked(QListWidgetItem *item) //leave c
     std::cout<<strlen(toSend)<<std::endl;
     _write(ssl,toSend,strlen(toSend)+1);
 
-    //hide chat if current visible and show main
+    //hide chat if currently visible and show main
     if(chat_id == currentChat)
     {
         ui->currentChannelLabel->setText("0 - main channel");
