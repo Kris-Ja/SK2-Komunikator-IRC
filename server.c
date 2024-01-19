@@ -80,7 +80,7 @@ int _read(int fd, char *buf, int bufsize){
 	}
 	do {
 		int i = SSL_read(ssl[fd], buf+l, bufsize);
-		if(i == 0) return 0;
+		if(i <= 0) return 0;
 		bufsize -= i;
 		l += i;
 
