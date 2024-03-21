@@ -1,7 +1,5 @@
 
-# Temat zadania:
-
-Komunikator IRC
+# Komunikator IRC
 
 # Autorzy:
 
